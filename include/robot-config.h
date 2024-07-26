@@ -15,6 +15,8 @@ extern motor GoalMotor;
 extern motor IntakePusher;
 extern motor IntakeArm;
 
+#define CONTROLLER_DEADBAND 5.0 // Joystick deadband for arcade drive
+
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
  *

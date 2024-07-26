@@ -8,6 +8,7 @@
 
 #include "robot-config.h"
 #include "cheesydrive.h"
+#include "simpledrive.h"
 
 #define waitUntil(condition)                                                   \
   do {                                                                         \
