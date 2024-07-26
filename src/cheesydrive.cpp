@@ -2,6 +2,8 @@
 
 using namespace vex;
 
+// Credit: https://wiki.purduesigbots.com/software/robotics-basics/curvature-cheesy-drive
+
 /**
  * Cheesy Drive Constants
  */
