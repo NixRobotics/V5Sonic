@@ -10,11 +10,11 @@ brain Brain;
 // VEXcode device constructors
 // NOTE: PUTT-PUTT PORT 19 is DEAD - do not use
 controller Controller1 = controller(primary);
-motor LeftFrontMotor = motor(PORT2, ratio6_1, true);
-motor LeftRearMotor = motor(PORT4, ratio6_1, true);
+motor LeftFrontMotor = motor(PORT2, ratio18_1, false);
+motor LeftRearMotor = motor(PORT4, ratio18_1, false);
 motor_group LeftDrive = motor_group(LeftFrontMotor, LeftRearMotor);
-motor RightFrontMotor = motor(PORT1, ratio6_1, false);
-motor RightRearMotor = motor(PORT3, ratio6_1, false);
+motor RightFrontMotor = motor(PORT1, ratio18_1, true);
+motor RightRearMotor = motor(PORT3, ratio18_1, true);
 motor_group RightDrive = motor_group(RightFrontMotor, RightRearMotor);
 drivetrain DriveTrain = drivetrain(LeftDrive, RightDrive, 4.15625 * M_PI, 15.0, 3.0, inches, 1.0);
 motor GoalMotor = motor(PORT20, ratio18_1, false);

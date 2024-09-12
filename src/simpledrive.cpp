@@ -23,7 +23,7 @@ void ToggleDriveSpeed() {
   }
 }
 
-void SimpleDrive(double throttle, double turn)
+void SimpleDrive(double *left_speed, double *right_speed, double throttle, double turn)
 {
     // Deadband stops the motors when Axis values are close to zero.
     float deadband = CONTROLLER_DEADBAND;
@@ -56,5 +56,32 @@ void SimpleDrive(double throttle, double turn)
       turn *= turnscale;
     }
 
-    DriveTrain.arcade(throttle, turn);
+    // DriveTrain.arcade(throttle, turn);
+
+    float leftDrive = throttle + turn;
+    float rightDrive = throttle - turn;
+
+    bool bLeftRev = false;
+    if (leftDrive < 0.0) {
+      leftDrive = - leftDrive;
+      bLeftRev = true;
+    }
+
+    bool bRightRev = false;
+    if (rightDrive < 0.0) {
+      rightDrive = - rightDrive;
+      bRightRev = true;
+    }
+
+    if (leftDrive > 100.0) leftDrive = 100.0;
+    if (rightDrive > 100.0) rightDrive = 100.0;
+
+    //LeftDrive.spin((bLeftRev) ? reverse : forward, 10.9 * leftDrive / 100.0, volt);
+    //RightDrive.spin((bRightRev) ? reverse : forward, 10.9 * rightDrive / 100.0, volt);
+
+    LeftDrive.spin((bLeftRev) ? reverse : forward, leftDrive, pct);
+    RightDrive.spin((bRightRev) ? reverse : forward, rightDrive, pct);
+
+    *left_speed = (bLeftRev) ? - leftDrive : leftDrive;
+    *right_speed = (bRightRev) ? - rightDrive : rightDrive;
 }

@@ -246,14 +246,26 @@ void ArmControl(double armrotraw)
     IntakeArm.spin(fwd, armrot, pct);
 }
 
-int AvgTorque(int id, float curTrq)
+/* HACK: Moving average for 4 motors over 10 readings */
+#define AVG_COUNT     4
+#define AVG_READINGS  10
+bool bAvgInitialized = false;
+
+int AvgTorque(int id, float curTrq, float maxTrq = 1.05)
 {
-  int idx = id - 1;
-  static float readings[4][10];
-  static int ptr[4] = {-1, -1, -1, -1};
+  int idx = id - 1; // make zero based
+  static float readings[AVG_COUNT][AVG_READINGS];
+  static int ptr[AVG_COUNT];
+
+  if (idx < 0 || idx >= AVG_COUNT) return -1;
+
+  if (!bAvgInitialized) {
+    for (int i = 0; i < AVG_COUNT; i++) ptr[i] = -1;
+    bAvgInitialized = true;
+  }
 
   if (ptr[idx] == -1) {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < AVG_READINGS; i++) {
       readings[idx][i] = curTrq;
     }
     ptr[idx] = 0;
@@ -262,13 +274,13 @@ int AvgTorque(int id, float curTrq)
   }
 
   float sum = 0.0;
-  for (int i = 0; i < 10; i++) {
-    int j = (ptr[idx] + 1 + i) % 10;
+  for (int i = 0; i < AVG_READINGS; i++) {
+    int j = (ptr[idx] + 1 + i) % AVG_READINGS;
     sum += readings[idx][j];
   }
-  sum = ((sum / 10.0) / (1.05 / 3.0)) * 100.0;
+  sum = ((sum / (float) AVG_READINGS) / maxTrq) * 100.0;
 
-  ptr[idx] = (ptr[idx] + 1) % 10;
+  ptr[idx] = (ptr[idx] + 1) % AVG_READINGS;
 
   return (int) sum;
 
@@ -284,27 +296,24 @@ void usercontrol(void) {
   DriveTrain.setDriveVelocity(100.0, pct);
   DriveTrain.setStopping(coast);
   IntakeArm.spinTo(12.5 * 84.0 / 12.0, deg, true);
+  LogInit();
 
   // User control code here, inside the loop
   while (true) {
     float updown = Controller1.Axis3.position();
     float leftright = Controller1.Axis4.position();
 
-    LeftDrive.spin(fwd, 25.0, pct);
-    RightDrive.spin(fwd, 25.0, pct);
-
-    //LeftFrontMotor.spin(fwd, 25.0, pct);
-    //LeftRearMotor.spin(fwd, 25.0, pct);
-    //RightFrontMotor.spin(fwd, 25.0, pct);
-    //RightRearMotor.spin(fwd, 25.0, pct);
-
-    // SimpleDrive(updown, leftright);
+    double left_speed, right_speed;
+    SimpleDrive(&left_speed, &right_speed, updown, leftright);
     // cheesyDrive(updown, leftright);
 
     float armrotraw = Controller1.Axis2.position();
     ArmControl(armrotraw);
 
-    wait(25, msec);
+    LogAccumState(left_speed, right_speed);
+    if (loopCount % STATSLOOPMAX == 0) LogCalcStats();
+
+    wait(10, msec);
     loopCount++;
   }
 }
@@ -340,7 +349,7 @@ int main() {
   // Controller1.ButtonA.pressed(whenControllerAPressed);
   
   printf("hello vex world\n");
-  Brain.Screen.print("## SONIC ##");
+  Brain.Screen.print("## YOSHI ##");
   Brain.Screen.newLine();
   Brain.Screen.newLine();
   Brain.Screen.print("TO ENABLE ROBOT: CHECK POSITIONS THEN PRESS A");
@@ -367,14 +376,6 @@ int main() {
     int motor2trq = AvgTorque(2, RightRearMotor.torque(vex::torqueUnits::Nm));
     int motor3trq = AvgTorque(3, LeftFrontMotor.torque(vex::torqueUnits::Nm));
     int motor4trq = AvgTorque(4, LeftRearMotor.torque(vex::torqueUnits::Nm));
-    /**/
-
-    /*
-    int motor1trq = (int) (RightFrontMotor.torque(vex::torqueUnits::Nm) / (1.05 / 3.0) * 100.0);
-    int motor2trq = (int) (RightRearMotor.torque(vex::torqueUnits::Nm) / (1.05 / 3.0) * 100.0);
-    int motor3trq = (int) (LeftFrontMotor.torque(vex::torqueUnits::Nm) / (1.05 / 3.0) * 100.0);
-    int motor4trq = (int) (LeftRearMotor.torque(vex::torqueUnits::Nm) / (1.05 / 3.0) * 100.0);
-    /**/
 
     if (loopcount % 100 == 0) {
       int armtemp = (int) IntakeArm.temperature(pct);
@@ -384,12 +385,21 @@ int main() {
       int motor2temp = (int) RightRearMotor.temperature(pct);
       int motor3temp = (int) LeftFrontMotor.temperature(pct);
       int motor4temp = (int) LeftRearMotor.temperature(pct);
-      if (armtemp > 50 || pushtemp > 50 || goaltemp > 50 || motor1temp > 50 || motor2temp > 50 || motor3temp > 50 || motor4temp > 50)
+
+      int driveTemp = 0;
+      if (motor1temp > 50 || motor2temp > 50 || motor3temp > 50 || motor4temp > 50) driveTemp = 1;
+      else if (motor1temp > 70 || motor2temp > 70 || motor3temp > 70 || motor4temp > 70) driveTemp = 2;
+
+      int armTemp = 0;
+      if (armtemp > 50 || pushtemp > 50 || goaltemp > 50) armTemp = 1;
+      else if (armtemp >= 70 || pushtemp > 70 || goaltemp > 70) armTemp = 2;
+
+      if (driveTemp == 1 || armTemp == 1)
       {
         Brain.Screen.clearScreen(orange);
         Brain.Screen.setFillColor(orange);
       }
-      else if (armtemp >= 70 || pushtemp > 70 || goaltemp > 70 || motor1temp > 70 || motor2temp > 70 || motor3temp > 70 || motor4temp > 70)
+      else if (driveTemp == 2 || armTemp == 2)
       {
         Brain.Screen.clearScreen(red);
         Brain.Screen.setFillColor(red);
@@ -399,7 +409,7 @@ int main() {
       }
       Brain.Screen.setPenColor(black);
       Brain.Screen.setCursor(1, 1);
-      Brain.Screen.print("## SONIC ##");
+      Brain.Screen.print("## YOSHI ##");
       Brain.Screen.setCursor(3, 1);
       Brain.Screen.print("Arm Temp: %3d", armtemp);
       Brain.Screen.setCursor(4, 1);
@@ -414,7 +424,15 @@ int main() {
       int batlevel =  (int) Brain.Battery.capacity(pct);
       Controller1.Screen.clearScreen();
       Controller1.Screen.setCursor(1, 1);
-      Controller1.Screen.print("SONIC BAT: %2d", batlevel);
+      Controller1.Screen.print("YOSHI BAT: %2d", batlevel);
+      Controller1.Screen.setCursor(2, 1);
+      if (driveTemp == 0) Controller1.Screen.print("DRIVE TEMP: OK");
+      else if (driveTemp == 1) Controller1.Screen.print("DRIVE TEMP: WARM");
+      else if (driveTemp == 2) Controller1.Screen.print("DRIVE TEMP: HOT");
+      Controller1.Screen.setCursor(3, 1);
+      if (armTemp == 0) Controller1.Screen.print("ARM TEMP: OK");
+      else if (armTemp == 1) Controller1.Screen.print("ARM TEMP: WARM");
+      else if (armTemp == 2) Controller1.Screen.print("ARM TEMP: HOT");
 
     }
     wait(10, msec);
