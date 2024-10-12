@@ -10,6 +10,7 @@
 #include "cheesydrive.h"
 #include "simpledrive.h"
 #include "robotlog.h"
+#include "ui.h"
 
 #define waitUntil(condition)                                                   \
   do {                                                                         \

@@ -76,11 +76,11 @@ void SimpleDrive(double *left_speed, double *right_speed, double throttle, doubl
     if (leftDrive > 100.0) leftDrive = 100.0;
     if (rightDrive > 100.0) rightDrive = 100.0;
 
-    //LeftDrive.spin((bLeftRev) ? reverse : forward, 10.9 * leftDrive / 100.0, volt);
-    //RightDrive.spin((bRightRev) ? reverse : forward, 10.9 * rightDrive / 100.0, volt);
+    LeftDrive.spin((bLeftRev) ? reverse : forward, 10.9 * leftDrive / 100.0, volt);
+    RightDrive.spin((bRightRev) ? reverse : forward, 10.9 * rightDrive / 100.0, volt);
 
-    LeftDrive.spin((bLeftRev) ? reverse : forward, leftDrive, pct);
-    RightDrive.spin((bRightRev) ? reverse : forward, rightDrive, pct);
+    // LeftDrive.spin((bLeftRev) ? reverse : forward, leftDrive, pct);
+    // RightDrive.spin((bRightRev) ? reverse : forward, rightDrive, pct);
 
     *left_speed = (bLeftRev) ? - leftDrive : leftDrive;
     *right_speed = (bRightRev) ? - rightDrive : rightDrive;
