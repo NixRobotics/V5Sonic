@@ -3,7 +3,7 @@ using namespace vex;
 extern brain Brain;
 
 // VEXcode devices
-#define USING_6MOTORS
+// #define USING_6MOTORS
 
 extern controller Controller1;
 extern motor L1, L2, L3;

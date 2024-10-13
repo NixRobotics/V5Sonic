@@ -146,8 +146,6 @@ void DumpLog()
     } else {
         printf("%s", cStr);
     }
-    // printf("%s", str.c_str());
-    // Brain.SDcard.savefile
 }
 
 
@@ -183,7 +181,7 @@ void whenControllerDownPressed()
   GoalMotor.setStopping(hold);
   GoalMotor.setVelocity(100.0, pct);
   GoalMotor.setMaxTorque(100.0, pct);
-  GoalMotor.spinTo(1.5 * 360.0, deg);
+  GoalMotor.spinTo(1.25 * 360.0, deg);
 }
 
 void whenControllerLeftPressed()
@@ -192,9 +190,7 @@ void whenControllerLeftPressed()
 
   GoalMotor.setStopping(coast);
   GoalMotor.stop();
-  //GoalMotor.setVelocity(100.0, pct);
-  //GoalMotor.setMaxTorque(100.0, pct);
-  //GoalMotor.spinTo(0.0 * 360.0, deg);
+
 }
 
 void whenControllerR1Pressed()
@@ -204,8 +200,7 @@ void whenControllerR1Pressed()
   IntakePusher.setStopping(coast);
   IntakePusher.setVelocity(100.0, pct);
   IntakePusher.spinTo(0.0, deg, true);
-  //GoalMotor.setMaxTorque(100.0, pct);
-  //GoalMotor.spinTo(0.0 * 360.0, deg);
+
 }
 
 void whenControllerR2Pressed()
@@ -215,8 +210,7 @@ void whenControllerR2Pressed()
   IntakePusher.setStopping(coast);
   IntakePusher.setVelocity(100.0, pct);
   IntakePusher.spinTo(-2.4 * 360.0, deg, true);
-  //GoalMotor.setMaxTorque(100.0, pct);
-  //GoalMotor.spinTo(0.0 * 360.0, deg);
+
 }
 
 void whenControllerL1Pressed()
@@ -344,8 +338,6 @@ int main() {
   pre_auton();
 
   // Install callbacks for buttons
-  // Controller1.ButtonL1.pressed(whenControllerL1Pressed);
-  // Controller1.ButtonL2.pressed(whenControllerL2Pressed);
 
   Controller1.ButtonR1.pressed(whenControllerR1Pressed);
   Controller1.ButtonR2.pressed(whenControllerR2Pressed);
@@ -356,15 +348,12 @@ int main() {
   Controller1.ButtonA.pressed(whenControllerAPressed);
 
   Controller1.ButtonY.pressed(whenControllerYPressed);
-  // Controller1.ButtonDown.pressed(whenControllerDownPressed);
 
   Controller1.ButtonUp.pressed(whenControllerUpPressed);
   Controller1.ButtonDown.pressed(whenControllerDownPressed);
   Controller1.ButtonRight.pressed(whenControllerLeftPressed);
   Controller1.ButtonLeft.pressed(whenControllerLeftPressed);
 
-  // Controller1.ButtonA.pressed(whenControllerAPressed);
-  
   UIPrintInitial();
 
   while (!bLimitsSet) {
@@ -382,11 +371,6 @@ int main() {
       float maxtrq = (NUM_DTMOTORS == 6) ? 1.05 / 3.0 : 1.05;
       dtmotor_trqs[i] = AvgTorque(1, dtmotors[i].torque(vex::torqueUnits::Nm), maxtrq);
     }
-
-    //int motor1trq = 100.0 * RightFrontMotor.torque(vex::torqueUnits::Nm) / 1.05;
-    //int motor2trq = 100.0 * RightRearMotor.torque(vex::torqueUnits::Nm) / 1.05;
-    //int motor3trq = 100.0 * LeftFrontMotor.torque(vex::torqueUnits::Nm) / 1.05;
-    //int motor4trq = 100.0 * LeftRearMotor.torque(vex::torqueUnits::Nm) / 1.05;
 
     if (loopcount % 100 == 0) {
       UIPrintCurrent(dtmotor_temp, dtmotor_trqs);

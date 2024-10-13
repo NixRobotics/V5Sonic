@@ -31,7 +31,7 @@ motor dtmotors[NUM_DTMOTORS] = {LeftFrontMotor, LeftRearMotor, RightFrontMotor, 
 #endif
 drivetrain DriveTrain = drivetrain(LeftDrive, RightDrive, 4.15625 * M_PI, 15.0, 3.0, inches, 1.0);
 motor GoalMotor = motor(PORT20, ratio18_1, false);
-#define YOWHI
+#define YOSHI
 #ifdef YOSHI
 motor IntakePusher = motor(PORT19, ratio18_1, true);
 motor IntakeArm = motor(PORT18, ratio36_1, true);
