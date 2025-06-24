@@ -11,6 +11,10 @@
 #include "simpledrive.h"
 #include "robotlog.h"
 #include "ui.h"
+#include "ploter.h"
+#include "MiniPID.h"
+#include "speedcontrol.h"
+#include "positioncontrol.h"
 
 #define waitUntil(condition)                                                   \
   do {                                                                         \

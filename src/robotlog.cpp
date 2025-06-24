@@ -1,4 +1,6 @@
 #include "vex.h"
+#include <string>
+#include <iostream>
 
 using namespace vex;
 
@@ -109,3 +111,56 @@ void LogCalcStats()
     printEvent.broadcast();
     printID++;
 }
+
+struct tSlingLog {
+    int32_t time;
+    float pos;
+    float torque;
+};
+
+#define MAXLOG 20000
+tSlingLog LOGARRAY[MAXLOG];
+int32_t logId = 0;
+
+void slingChanged(float pos, float torque)
+{
+    if (logId < MAXLOG) {
+        LOGARRAY[logId].time = vex::timer::system();
+        LOGARRAY[logId].pos = pos;
+        LOGARRAY[logId].torque = torque;
+        logId++;
+    } else if (logId == MAXLOG) {
+        printf("log buffer overflow\n");
+        logId++;
+    }
+}
+
+void DumpLog()
+{
+    if (!Brain.SDcard.isInserted()) {
+        printf("No SDCARD\n");
+    }
+    if (logId >= MAXLOG) logId = MAXLOG;
+    std::string str = "";
+    char tempStr[100];
+    str += "time, deg, torque\n";
+    for (int i = 0; i < logId; i++) {
+        sprintf(&(tempStr[0]), "%ld, %f, %f\n", LOGARRAY[i].time, LOGARRAY[i].pos, LOGARRAY[i].torque);
+        str += tempStr;
+        // str += LOGARRAY[i].time + LOGARRAY[i].val + "\n";
+    }
+
+    const char *cStr = str.c_str();
+    int len = strlen(cStr);
+
+    if (Brain.SDcard.isInserted()) {
+        int saved = Brain.SDcard.savefile("data.csv", (uint8_t *) cStr, len);
+
+        printf("%d of %d bytes written to file\n", saved, len);
+        if (Brain.SDcard.exists("data.csv")) {
+            printf("File size: %ld\n", Brain.SDcard.size("data.csv"));        }
+    } else {
+        printf("%s", cStr);
+    }
+}
+

@@ -21,25 +21,22 @@ motor R3 = motor(PORT3, ratio6_1, true);
 motor_group RightDrive = motor_group(R1, R2, R3);
 motor dtmotors[NUM_DTMOTORS] = {L1, L2, L3, R1, R2, R3};
 #else
-motor LeftFrontMotor = motor(PORT2, ratio18_1, false);
-motor LeftRearMotor = motor(PORT4, ratio18_1, false);
+motor LeftFrontMotor = motor(PORT2, ratio6_1, true);
+motor LeftRearMotor = motor(PORT4, ratio6_1, true);
 motor_group LeftDrive = motor_group(LeftFrontMotor, LeftRearMotor);
-motor RightFrontMotor = motor(PORT1, ratio18_1, true);
-motor RightRearMotor = motor(PORT3, ratio18_1, true);
+motor RightFrontMotor = motor(PORT1, ratio6_1, false);
+motor RightRearMotor = motor(PORT3, ratio6_1, false);
 motor_group RightDrive = motor_group(RightFrontMotor, RightRearMotor);
 motor dtmotors[NUM_DTMOTORS] = {LeftFrontMotor, LeftRearMotor, RightFrontMotor, RightRearMotor};
 #endif
-drivetrain DriveTrain = drivetrain(LeftDrive, RightDrive, 4.15625 * M_PI, 15.0, 3.0, inches, 1.0);
-motor GoalMotor = motor(PORT20, ratio18_1, false);
-#define YOSHI
-#ifdef YOSHI
-motor IntakePusher = motor(PORT19, ratio18_1, true);
-motor IntakeArm = motor(PORT18, ratio36_1, true);
-#else
-motor IntakePusher = motor(PORT18, ratio18_1, true);
-motor IntakeArm = motor(PORT17, ratio36_1, false);
-#endif
-motor ConveyorMotor = motor(PORT15, ratio36_1, true);
+inertial InertialSensor = inertial(PORT10);
+distance RightRearDistance = distance(PORT9);
+distance LeftRearDistance = distance(PORT8);
+
+float wheelbase = (7.0 + 7.0 + 6.5 + 6.5) * 0.5 * 25.4; // mm
+float trackwidth = 320.0; //mm
+smartdrive DriveTrain = smartdrive(LeftDrive, RightDrive, InertialSensor, 260.0, trackwidth, wheelbase, mm, 24.0 / 60.0);
+
 
 // https://www.vexforum.com/t/vexcode-motor-groups-and-drivetrain-example/69161
 
@@ -53,4 +50,8 @@ motor ConveyorMotor = motor(PORT15, ratio36_1, true);
 void vexcodeInit(void) {
   // nothing to initialize
   wait(100, msec);
+  InertialSensor.calibrate();
+  while (InertialSensor.isCalibrating()) {
+    wait(20, msec);
+  }
 }

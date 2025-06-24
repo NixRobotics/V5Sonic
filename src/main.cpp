@@ -8,8 +8,7 @@
 /*----------------------------------------------------------------------------*/
 
 #include "vex.h"
-#include <string>
-#include <iostream>
+
 
 using namespace vex;
 
@@ -17,8 +16,6 @@ using namespace vex;
 competition Competition;
 
 // define your global instances of motors and other devices here
-
-bool bLimitsSet = false;
 
 /*---------------------------------------------------------------------------*/
 /*                          Pre-Autonomous Functions                         */
@@ -30,16 +27,19 @@ bool bLimitsSet = false;
 /*  not every time that the robot is disabled.                               */
 /*---------------------------------------------------------------------------*/
 
+bool bInitialized = false;
+
 void pre_auton(void) {
 
   vexcodeInit();
 
+  wait(100, msec);
+
+  bInitialized = true;
+
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
 
-  IntakeArm.setMaxTorque(100.0, pct);
-  IntakeArm.setPosition(0.0, deg);
-  IntakeArm.setVelocity(50.0, pct);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -59,31 +59,6 @@ void autonomous(void) {
 
   wait (1, seconds);
 
-  IntakeArm.setStopping(hold);
-
-  bLimitsSet = true;
-
-  DriveTrain.setDriveVelocity(33.0, pct);
-  DriveTrain.setStopping(brake);
-  DriveTrain.turnFor(360.0, deg, true);
-  wait (0.10, seconds);
-  DriveTrain.turnFor(-360.0, deg, true);
-  wait (0.10, seconds);
-  DriveTrain.driveFor(24.0, inches, true);
-  wait (0.10, seconds);
-  DriveTrain.turnFor(90.0, deg, true);
-  wait (0.10, seconds);
-  DriveTrain.driveFor(24.0, inches, true);
-  wait (0.10, seconds);
-  DriveTrain.turnFor(90.0, deg, true);
-  wait (0.10, seconds);
-  DriveTrain.driveFor(24.0, inches, true);
-  wait (0.10, seconds);
-  DriveTrain.turnFor(90.0, deg, true);
-  wait (0.10, seconds);
-  DriveTrain.driveFor(24.0, inches, true);
-  wait (0.10, seconds);
-  DriveTrain.turnFor(90.0, deg, true);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -96,163 +71,6 @@ void autonomous(void) {
 /*  You must modify the code to add your own robot specific commands here.   */
 /*---------------------------------------------------------------------------*/
 
-struct tSlingLog {
-    int32_t time;
-    float pos;
-    float torque;
-};
-
-#define MAXLOG 20000
-tSlingLog LOGARRAY[MAXLOG];
-int32_t logId = 0;
-
-void slingChanged(float pos, float torque)
-{
-    if (logId < MAXLOG) {
-        LOGARRAY[logId].time = vex::timer::system();
-        LOGARRAY[logId].pos = pos;
-        LOGARRAY[logId].torque = torque;
-        logId++;
-    } else if (logId == MAXLOG) {
-        printf("log buffer overflow\n");
-        logId++;
-    }
-}
-
-void DumpLog()
-{
-    if (!Brain.SDcard.isInserted()) {
-        printf("No SDCARD\n");
-    }
-    if (logId >= MAXLOG) logId = MAXLOG;
-    std::string str = "";
-    char tempStr[100];
-    str += "time, deg, torque\n";
-    for (int i = 0; i < logId; i++) {
-        sprintf(&(tempStr[0]), "%ld, %f, %f\n", LOGARRAY[i].time, LOGARRAY[i].pos, LOGARRAY[i].torque);
-        str += tempStr;
-        // str += LOGARRAY[i].time + LOGARRAY[i].val + "\n";
-    }
-
-    const char *cStr = str.c_str();
-    int len = strlen(cStr);
-
-    if (Brain.SDcard.isInserted()) {
-        int saved = Brain.SDcard.savefile("data.csv", (uint8_t *) cStr, len);
-
-        printf("%d of %d bytes written to file\n", saved, len);
-        if (Brain.SDcard.exists("data.csv")) {
-            printf("File size: %ld\n", Brain.SDcard.size("data.csv"));        }
-    } else {
-        printf("%s", cStr);
-    }
-}
-
-
-// Main loop runrate, approx 25ms
-int loopCount = 0;
-
-void whenControllerAPressed() {
-  if (bLimitsSet) return;
-
-  IntakeArm.setPosition(0.0, deg);
-  IntakePusher.setPosition(0.0, deg);
-  GoalMotor.setPosition(0.0, deg);
-  IntakeArm.setStopping(hold);
-
-  bLimitsSet = true;
-}
-
-void whenControllerUpPressed()
-{
-  if (!bLimitsSet) return;
-
-  GoalMotor.setStopping(hold);
-  GoalMotor.setVelocity(100.0, pct);
-  GoalMotor.setMaxTorque(100.0, pct);
-  GoalMotor.spinTo(2.25 * 360.0, deg);
-  // GoalMotor.spinTo(3.2 * 360.0, deg);
-}
-
-void whenControllerDownPressed()
-{
-  if (!bLimitsSet) return;
-
-  GoalMotor.setStopping(hold);
-  GoalMotor.setVelocity(100.0, pct);
-  GoalMotor.setMaxTorque(100.0, pct);
-  GoalMotor.spinTo(1.25 * 360.0, deg);
-}
-
-void whenControllerLeftPressed()
-{
-  if (!bLimitsSet) return;
-
-  GoalMotor.setStopping(coast);
-  GoalMotor.stop();
-
-}
-
-void whenControllerR1Pressed()
-{
-  if (!bLimitsSet) return;
-
-  IntakePusher.setStopping(coast);
-  IntakePusher.setVelocity(100.0, pct);
-  IntakePusher.spinTo(0.0, deg, true);
-
-}
-
-void whenControllerR2Pressed()
-{
-  if (!bLimitsSet) return;
-
-  IntakePusher.setStopping(coast);
-  IntakePusher.setVelocity(100.0, pct);
-  IntakePusher.spinTo(-2.4 * 360.0, deg, true);
-
-}
-
-void whenControllerL1Pressed()
-{
-  ConveyorMotor.setStopping(coast);
-  ConveyorMotor.setVelocity(100.0, pct);
-  ConveyorMotor.spin(fwd);
-}
-
-void whenControllerL2Pressed()
-{
-  ConveyorMotor.stop();
-}
-
-
-void whenControllerYPressed() {
-  ToggleDriveSpeed();
-}
-
-
-void ArmControl(double armrotraw)
-{
-    float deadband = CONTROLLER_DEADBAND;
-    float gearratio = 84.0 / 12.0;
-    float armdownlimit = -1.0;
-    float armuplimit = 70.0;
-    float armscale = 0.75;
-
-    float armrot = 0.0;
-    float armposition = IntakeArm.position(deg);
-    if (armposition < armdownlimit * gearratio) {
-      if (armrotraw > 0.0) armrotraw = 0.0;
-    } else if (armposition > armuplimit * gearratio) {
-      if (armrotraw < 0.0) armrotraw = 0.0;
-    } else {
-    }
-
-    if (armrotraw > deadband) armrot = -(armrotraw - deadband) * (100.0 / (100.0 - deadband)) * armscale;
-    else if (armrotraw < -deadband) armrot = -(armrotraw + deadband) * (100.0 / (100.0 - deadband)) * armscale;
-
-    IntakeArm.spin(fwd, armrot, pct);
-}
 
 /* HACK: Moving average for N motors over 10 readings */
 #define AVG_COUNT     NUM_DTMOTORS
@@ -294,16 +112,189 @@ int AvgTorque(int id, float curTrq, float maxTrq = 1.05)
 
 }
 
+void MotorRamp()
+{
+  for (int i = 0; i <= 100; i++) {
+    float voltage = 12.0 * (float) i / 100.0;
+    LeftDrive.spin(forward, voltage, voltageUnits::volt);
+    RightDrive.spin(forward, voltage, voltageUnits::volt);
+    for (int j = 0; j < 10; j++) {
+      wait(40, msec);
+      printf("%f, %f, %f\n", voltage, LeftDrive.velocity(velocityUnits::rpm), RightDrive.velocity(velocityUnits::rpm));
+    }
+  }
+  LeftDrive.stop(coast);
+  RightDrive.stop(coast);
+}
+
+void MotorRampRPM()
+{
+  XYPlotter plot;
+
+  SpeedControl leftSpeedControl;
+  SpeedControl rightSpeedControl;
+
+  for (int i = 0; i <= 100; i++) {
+
+    float rpm = 600.0 * (float) i / 100.0;
+
+    leftSpeedControl.setSpeed(rpm);
+    rightSpeedControl.setSpeed(rpm);
+
+    float left_accum = 0.0;
+    float right_accum = 0.0;
+
+    for (int j = 0; j < 20; j++) {
+      float left_voltage = leftSpeedControl.getOutput(LeftDrive.velocity(velocityUnits::rpm));
+      float right_voltage = rightSpeedControl.getOutput(RightDrive.velocity(velocityUnits::rpm));
+
+      LeftDrive.spin(forward, left_voltage, voltageUnits::volt);
+      RightDrive.spin(forward, right_voltage, voltageUnits::volt);
+
+      wait(10, msec);
+
+      if (j % 2 == 1) {
+        printf("%f, %f, %f\n", rpm, LeftDrive.velocity(velocityUnits::rpm), RightDrive.velocity(velocityUnits::rpm));
+        left_accum += LeftDrive.velocity(velocityUnits::rpm);
+        right_accum += RightDrive.velocity(velocityUnits::rpm);
+      }
+
+    }
+
+    plot.addDataPointSeries1(rpm, left_accum / 10.0);
+    plot.addDataPointSeries2(rpm, right_accum / 10.0);
+
+  }
+  LeftDrive.stop(coast);
+  RightDrive.stop(coast);
+
+  plot.drawPlot();
+
+}
+
+void MotorStep()
+{
+  XYPlotter plot;
+
+  SpeedControl leftSpeedControl;
+  SpeedControl rightSpeedControl;
+
+  float samples[500][5];
+  int sampleCount = 0;
+
+  int rpm = 0;
+  float rpm_step = 600.0 / 500.0; // step size in RPM
+
+  for (int i = 0; i <= 500; i++) {
+
+    if (true) {
+      if (i == 100) rpm = 100;
+      if (i == 200) rpm = -100;
+      if (i == 300) rpm = 300;
+      if (i == 400) rpm = -300;
+    }
+    if (false) {
+      rpm = (int) (((float) i) * rpm_step);
+    }
+
+    leftSpeedControl.setSpeed(rpm);
+    rightSpeedControl.setSpeed(rpm);
+
+    float left_voltage = leftSpeedControl.getOutput(LeftDrive.velocity(velocityUnits::rpm));
+    float right_voltage = rightSpeedControl.getOutput(RightDrive.velocity(velocityUnits::rpm));
+
+    LeftDrive.spin(forward, left_voltage, voltageUnits::volt);
+    RightDrive.spin(forward, right_voltage, voltageUnits::volt);
+
+    wait(10, msec);
+
+    float left_speed = LeftDrive.velocity(velocityUnits::rpm);
+    float right_speed = RightDrive.velocity(velocityUnits::rpm);
+
+    samples[i][0] = (float) rpm;
+    samples[i][1] = left_voltage;
+    samples[i][2] = right_voltage;
+    samples[i][3] = left_speed;
+    samples[i][4] = right_speed;
+
+    plot.addDataPointSeries1(i, rpm);
+    plot.addDataPointSeries2(i, left_speed);
+    plot.addDataPointSeries3(i, right_speed);
+  }
+
+  LeftDrive.stop(coast);
+  RightDrive.stop(coast);
+
+  plot.drawPlot();
+
+  for (int i = 0; i < 500; i++) {
+    printf("%d, %0.1f, %0.1f, %0.2f, %0.2f\n",
+      (int) samples[i][0],
+      samples[i][1],
+      samples[i][2],
+      samples[i][3],
+      samples[i][4]
+      );
+    wait(20, msec);
+  }
+
+}
+
+void MotorNoise()
+{
+  float samples[100][6];
+  int sampleCount = 0;
+
+  LeftDrive.spin(forward, 4.0, voltageUnits::volt);
+
+  for (int i = 0; i < 100; i++) {
+    samples[i][0] = LeftFrontMotor.timestamp();
+    samples[i][1] = LeftFrontMotor.velocity(velocityUnits::rpm);
+    samples[i][2] = LeftFrontMotor.position(rotationUnits::rev);
+
+    samples[i][3] = LeftRearMotor.timestamp();
+    samples[i][4] = LeftRearMotor.velocity(velocityUnits::rpm);
+    samples[i][5] = LeftRearMotor.position(rotationUnits::rev);
+
+    wait(10, msec);
+  }
+
+  LeftDrive.stop(coast);
+
+  for (int i = 0; i < 100; i++) {
+    printf("%f, %f, %f, %f, %f, %f\n", samples[i][0], samples[i][1], samples[i][2], samples[i][3], samples[i][4], samples[i][5]);
+    wait(20, msec);
+  }
+
+}
+
 void usercontrol(void) {
+
+  while (!bInitialized) {
+    this_thread::sleep_for(10); // wait for pre_auton to finish
+  }
+
+  while (true) this_thread::sleep_for(1000); // wait for user to stop the motors
+
+  int loopCount = 0;
 
   printf("user\n");
 
-  while (!bLimitsSet) {
-    wait(100, msec);
-  }
-  DriveTrain.setDriveVelocity(100.0, pct);
-  DriveTrain.setStopping(coast);
-  IntakeArm.spinTo(12.5 * 84.0 / 12.0, deg, true);
+  DriveTrain.setDriveVelocity(10.0, pct);
+  DriveTrain.setTurnVelocity(10.0, pct);
+  DriveTrain.setStopping(brake);
+
+  float gyro_compensation = 360.0 / 365.5;
+
+  DriveTrain.driveFor(reverse, 200.0, distanceUnits::mm, 12.5, velocityUnits::pct, true);
+
+  // DriveTrain.turnFor(360.0 * gyro_compensation, rotationUnits::deg, 10.0, velocityUnits::pct, true);
+
+//  DriveTrain.driveFor(forward, 200.0, distanceUnits::mm, 10.0, velocityUnits::pct, true);
+  DriveTrain.stop(coast);
+
+  this_thread::sleep_for(1000);
+
   LogInit();
 
   // User control code here, inside the loop
@@ -315,8 +306,6 @@ void usercontrol(void) {
     SimpleDrive(&left_speed, &right_speed, updown, leftright);
     // cheesyDrive(updown, leftright);
 
-    float armrotraw = Controller1.Axis2.position();
-    ArmControl(armrotraw);
 
     LogAccumState(left_speed, right_speed);
     if (loopCount % STATSLOOPMAX == 0) LogCalcStats();
@@ -338,27 +327,13 @@ int main() {
   pre_auton();
 
   // Install callbacks for buttons
-
-  Controller1.ButtonR1.pressed(whenControllerR1Pressed);
-  Controller1.ButtonR2.pressed(whenControllerR2Pressed);
-
-  Controller1.ButtonL1.pressed(whenControllerL1Pressed);
-  Controller1.ButtonL2.pressed(whenControllerL2Pressed);
-
-  Controller1.ButtonA.pressed(whenControllerAPressed);
-
-  Controller1.ButtonY.pressed(whenControllerYPressed);
-
-  Controller1.ButtonUp.pressed(whenControllerUpPressed);
-  Controller1.ButtonDown.pressed(whenControllerDownPressed);
-  Controller1.ButtonRight.pressed(whenControllerLeftPressed);
-  Controller1.ButtonLeft.pressed(whenControllerLeftPressed);
-
+  
   UIPrintInitial();
 
-  while (!bLimitsSet) {
-    wait(100, msec);
-  }
+  // MotorNoise();
+  MotorStep();
+
+  while(true) this_thread::sleep_for(1000);
 
   // Prevent main from exiting with an infinite loop.
   int loopcount = 0;
