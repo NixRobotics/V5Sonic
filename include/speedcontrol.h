@@ -3,7 +3,9 @@ using namespace vex;
 class SpeedControl {
 public:
     int cmdSpeed = 0; // Desired speed in RPM
+    bool bStopping = false; // Flag to indicate if the robot is stopping
     int currentSpeed = 0; // Current speed in RPM
+    int lastSign = 0;
     double inputMedianFilter[3] = {0.0, 0.0, 0.0}; // Median filter for actual speed smoothing
     MiniPID speedPID; // PID controller for speed control
     // Constructor sets screen size and margin parameters.
@@ -21,6 +23,14 @@ public:
     void setSpeed(int speed) {
         cmdSpeed = speed; // Set the desired speed
         speedPID.setSetpoint((double) cmdSpeed); // Update the PID setpoint
+    }
+
+    void setStopping(bool stopping) {
+        bStopping = stopping; // Set the stopping flag
+        if (bStopping) {
+            cmdSpeed = 0; // If stopping, set command speed to zero
+            speedPID.setSetpoint((double) cmdSpeed); // Update the PID setpoint
+        }
     }
 
     double getMedianSpeed(double actualSpeed) {
@@ -43,11 +53,28 @@ public:
         double medianSpeed = getMedianSpeed((double) actualSpeed); // Get the median speed
         double output = speedPID.getOutput(medianSpeed); // Get the PID output based on the current speed
 
+        if (bStopping && cmdSpeed == 0) {
+            if (lastSign > 0 && output <= 0.0) {
+                output = 0.0; // If the command speed is zero and the last sign was positive, set output to zero
+                bStopping = false; // Reset the stopping flag
+                speedPID.clear();
+            } else if (lastSign < 0 && output >= 0.0) {
+                output = 0.0; // If the command speed is zero and the last sign was negative, set output to zero
+                speedPID.clear(); // Clear the PID controller to reset the I term
+                bStopping = false; // Reset the stopping flag
+            }
+        }
+
         // sanity checks
-        if (cmdSpeed == 0) output = 0.0; // If the command speed is zero, set output to zero
+        // if (cmdSpeed == 0) output = 0.0; // If the command speed is zero, set output to zero
         if (output < -12.0) output = -12.0; // Ensure output is non-negative, as we operate one sided
         if (output > 12.0) output = 12.0; // Cap the output at 12V
 
+        // store sign of the last output
+        if (output > 0.0) lastSign = 1;
+        else if (output < 0.0) lastSign = -1;
+        else lastSign = 0; // Update the last sign based on the output
+        
         return output; // Return the calculated output
     }
 

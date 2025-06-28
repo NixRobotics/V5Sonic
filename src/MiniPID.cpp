@@ -27,11 +27,11 @@ MiniPID::MiniPID(double p, double i, double d, double f){
 	P=p; I=i; D=d; F=f;
 }
 void MiniPID::init(){
-	P=0;
-	I=0;
-	D=0;
-	F=0;
-	F_offset=0;
+	P = 0;
+	I = 0;
+	D = 0;
+	F = 0;
+	F_offset = 0;
 
 	maxIOutput=0;
 	maxError=0;
@@ -197,21 +197,22 @@ double MiniPID::getOutput(double actual, double setpoint){
 	double Doutput;
 	double Foutput;
 
-	this->setpoint=setpoint;
+	this->setpoint = setpoint;
 
 	//Ramp the setpoint used for calculations if user has opted to do so
-	if(setpointRange!=0){
-		setpoint=clamp(setpoint,actual-setpointRange,actual+setpointRange);
+	if(setpointRange != 0){
+		setpoint = clamp(setpoint, actual - setpointRange, actual + setpointRange);
 	}
 
 	//Do the simple parts of the calculations
-	double error=setpoint-actual;
+	double error = setpoint - actual;
 
 	//Calculate F output. Notice, this->depends only on the setpoint, and not the error. 
-	Foutput =F * (setpoint + F_offset);
+	double F_offset_this = (setpoint != 0.0) ? F_offset : 0.0;
+	Foutput =F * (setpoint + F_offset_this);
 
 	//Calculate P term
-	Poutput=P*error;	 
+	Poutput = P * error;	 
 
 	//If this->is our first time running this-> we don't actually _have_ a previous input or output. 
 	//For sensor, sanely assume it was exactly where it is now.
@@ -227,10 +228,8 @@ double MiniPID::getOutput(double actual, double setpoint){
 	//Note, this->is negative. this->actually "slows" the system if it's doing
 	//the correct thing, and small values helps prevent output spikes and overshoot 
 
-	Doutput= -D*(actual-lastActual);
-	lastActual=actual;
-
-
+	Doutput = -D * (actual - lastActual);
+	lastActual = actual;
 
 	//The Iterm is more complex. There's several things to factor in to make it easier to deal with.
 	// 1. maxIoutput restricts the amount of output contributed by the Iterm.
@@ -256,12 +255,12 @@ double MiniPID::getOutput(double actual, double setpoint){
 		errorSum=error; 
 	}
 	else if(maxIOutput!=0){
-		errorSum=clamp(errorSum+error,-maxError,maxError);
+		errorSum = clamp(errorSum+error, -maxError, maxError);
 		// In addition to output limiting directly, we also want to prevent I term 
 		// buildup, so restrict the error directly
 	}
 	else{
-		errorSum+=error;
+		errorSum += error;
 	}
 
 	//Restrict output to our specified output and ramp limits
@@ -303,6 +302,15 @@ void MiniPID::reset(){
 	firstRun=true;
 	errorSum=0;
 }
+
+/**
+ * Clears memory - used when controller is approaching zero velocity
+ */
+
+ void MiniPID::clear() {
+	errorSum = 0.0;
+	lastActual = 0.0;
+ }
 
 /**Set the maximum rate the output can increase per cycle. 
  * @param rate

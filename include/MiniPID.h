@@ -18,6 +18,7 @@ public:
 	void setDirection(bool);
 	void setSetpoint(double);
 	void reset();
+	void clear();
 	void setOutputRampRate(double);
 	void setSetpointRange(double);
 	void setOutputFilter(double);

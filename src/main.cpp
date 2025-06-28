@@ -172,6 +172,8 @@ void MotorRampRPM()
 
 }
 
+#define NUM_STEPS 1000
+
 void MotorStep()
 {
   XYPlotter plot;
@@ -179,21 +181,28 @@ void MotorStep()
   SpeedControl leftSpeedControl;
   SpeedControl rightSpeedControl;
 
-  float samples[500][5];
+  float samples[NUM_STEPS][5];
   int sampleCount = 0;
 
   int rpm = 0;
-  float rpm_step = 600.0 / 500.0; // step size in RPM
 
-  for (int i = 0; i <= 500; i++) {
+  for (int i = 0; i <= NUM_STEPS; i++) {
 
     if (true) {
-      if (i == 100) rpm = 100;
-      if (i == 200) rpm = -100;
-      if (i == 300) rpm = 300;
-      if (i == 400) rpm = -300;
+      if (i == 50) rpm = 50;
+      if (i == 150) rpm = -50;
+      if (i == 250) rpm = 100;
+      if (i == 350) rpm = -100;
+      if (i == 450) rpm = 300;
+      if (i == 550) rpm = -300;
+      if (i == 650) rpm = 0;
+      if (i > 700) {
+        float rpm_step = 300.0 / ((float) 300); // step size in RPM
+        rpm = (int) (((float) (i - 700)) * rpm_step);
+      }
     }
     if (false) {
+      float rpm_step = 300.0 / ((float) NUM_STEPS); // step size in RPM
       rpm = (int) (((float) i) * rpm_step);
     }
 
@@ -227,7 +236,7 @@ void MotorStep()
 
   plot.drawPlot();
 
-  for (int i = 0; i < 500; i++) {
+  for (int i = 0; i < NUM_STEPS; i++) {
     printf("%d, %0.1f, %0.1f, %0.2f, %0.2f\n",
       (int) samples[i][0],
       samples[i][1],
@@ -239,6 +248,102 @@ void MotorStep()
   }
 
 }
+
+bool CheckTurnsDone(PositionControl &leftPositionControl, PositionControl &rightPositionControl)
+{
+  bool bLeftSettled = leftPositionControl.isSettled();
+  bool bRightSettled = rightPositionControl.isSettled();
+  bool bLeftTimedOut = leftPositionControl.isTimedOut();
+  bool bRightTimedOut = rightPositionControl.isTimedOut();
+
+  if (bLeftSettled && bRightSettled) {
+    printf("Settled at %0.4f, %0.4f\n", LeftDrive.position(rotationUnits::rev), RightDrive.position(rotationUnits::rev));
+    return true;
+  } else if (bLeftTimedOut || bRightTimedOut) {
+      printf("Timed out at %0.4f, %0.4f\n", LeftDrive.position(rotationUnits::rev), RightDrive.position(rotationUnits::rev));
+    return true;
+  }
+  return false;
+}
+
+void MotorTurns()
+{
+
+  PositionControl leftPositionControl;
+  PositionControl rightPositionControl;
+
+  SpeedControl leftSpeedControl;
+  SpeedControl rightSpeedControl;
+
+  float samples[500][7];
+  int sampleCount = 0;
+  float revolutions = 0.0;
+
+  for (int i = 0; i <= 500; i++) {
+
+    if (true) {
+      if (i == 50) {
+        revolutions = 3.0 * 60.0 / 24.0;
+        leftPositionControl.setPosition(revolutions);
+        rightPositionControl.setPosition(revolutions);
+      }
+    }
+
+    float left_rpm = leftPositionControl.getOutput(LeftDrive.position(rotationUnits::rev)) * 300.0;
+    float right_rpm = rightPositionControl.getOutput(RightDrive.position(rotationUnits::rev)) * 300.0;
+
+    if (CheckTurnsDone(leftPositionControl, rightPositionControl)) {
+      leftPositionControl.reset();
+      rightPositionControl.reset();
+      leftSpeedControl.setStopping(true);
+      rightSpeedControl.setStopping(true);
+    }
+
+    leftSpeedControl.setSpeed((int) left_rpm);
+    rightSpeedControl.setSpeed((int) right_rpm);
+
+    float left_voltage = leftSpeedControl.getOutput(LeftDrive.velocity(velocityUnits::rpm));
+    float right_voltage = rightSpeedControl.getOutput(RightDrive.velocity(velocityUnits::rpm));
+
+    LeftDrive.spin(forward, left_voltage, voltageUnits::volt);
+    RightDrive.spin(forward, right_voltage, voltageUnits::volt);
+
+    wait(10, msec);
+
+    float left_position = LeftDrive.position(rotationUnits::rev);
+    float right_position = RightDrive.position(rotationUnits::rev);
+
+    float left_speed = LeftDrive.velocity(velocityUnits::rpm);
+    float right_speed = RightDrive.velocity(velocityUnits::rpm);
+
+    samples[i][0] = revolutions;
+    samples[i][1] = left_position;
+    samples[i][2] = right_position;
+    samples[i][3] = left_rpm;
+    samples[i][4] = right_rpm;
+    samples[i][5] = left_speed;
+    samples[i][6] = right_speed;
+  }
+
+  LeftDrive.stop(coast);
+  RightDrive.stop(coast);
+
+  for (int i = 0; i < 500; i++) {
+    printf("%0.1f, %0.4f, %0.4f, %0.2f, %0.2f, %0.2f, %0.2f\n",
+      samples[i][0],
+      samples[i][1],
+      samples[i][2],
+      samples[i][3],
+      samples[i][4],
+      samples[i][5],
+      samples[i][6]
+      );
+    wait(20, msec);
+  }
+
+}
+
+
 
 void MotorNoise()
 {
@@ -331,7 +436,8 @@ int main() {
   UIPrintInitial();
 
   // MotorNoise();
-  MotorStep();
+  // MotorStep();
+  MotorTurns();
 
   while(true) this_thread::sleep_for(1000);
 

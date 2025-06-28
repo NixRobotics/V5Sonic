@@ -1,0 +1,6 @@
+build/V5Sonic.elf
+build/V5Sonic.bin
+build/src/main.o
+build/src/MiniPID.o
+build/V5Sonic.map
+/build
