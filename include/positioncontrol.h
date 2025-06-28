@@ -56,72 +56,15 @@ public:
         return _isTimeout; // Return the timeout status
     }
 
-    bool checkTimout() {
-        if (timeoutStartTime != 0 && (vex::timer::system() - timeoutStartTime) >= timeoutTime) {
-            _isTimeout = true; // Set the timeout flag
-            OnEndCondition();
-            return true; // Return true if timeout is reached
-        }
-        return false;
-    }
+    bool checkTimout();
 
-    bool checkSettled() {
-
-        double error = cmdPosition - currentPosition; // Calculate the error
-
-        if (settleStartTime != 0) {
-            if (fabs(error) <= settleThreshold) {
-                if (vex::timer::system() - settleStartTime >= settleTime) {
-                    _isSettled = true; // Set the settled flag if within threshold for the specified time
-                    OnEndCondition();
-                    return true;
-                }
-            } else {
-                settleStartTime = 0; // Reset the settle start time if error exceeds threshold
-            }
-        } else if (fabs(error) <= settleThreshold) {
-            settleStartTime = vex::timer::system(); // Start the settle timer if within threshold
-        }
-
-        return false;
-    }
+    bool checkSettled();
 
     // Get the output of the PID controller in RPM based on the current position in revolutions
-    double getOutput(double actualPosition) {
-        currentPosition = actualPosition; // Update the current speed
+    double getOutput(double actualPosition);
 
-        double output = 0.0; // Initialize output
+    void _onEndCondition();
 
-        // printf("%f %f\n", cmdPosition, currentPosition);
-        if (_isRunning) {
-            output = positionPID.getOutput(actualPosition); // Get the PID output based on the current speed
-
-            // Check timeout
-            if (checkTimout()) {
-                output = 0.0; // Stop the motor if timeout is reached
-            } else if (checkSettled()) {
-                output = 0.0; // Stop the motor if settled
-            }
-
-        }
-
-        return output; // Return the calculated (rpm) output
-    }
-
-    void OnEndCondition() {
-        timeoutStartTime = 0; // Reset the timeout start time
-        settleStartTime = 0; // Reset the settle start time
-        _isRunning = false; // Reset the running flag
-        positionPID.reset(); // Reset the PID controller
-    }
-
-    void reset() {
-        positionPID.reset(); // Reset the PID controller
-        settleStartTime = 0; // Reset the settle start time
-        timeoutStartTime = 0;
-        _isSettled = false; // Reset the settled flag
-        _isTimeout = false; // Reset the timeout flag
-        _isRunning = false; // Reset the running flag
-    }
+    void reset();
 
 };

@@ -15,6 +15,7 @@
 #include "MiniPID.h"
 #include "speedcontrol.h"
 #include "positioncontrol.h"
+#include "drivecommands.h"
 
 #define waitUntil(condition)                                                   \
   do {                                                                         \
